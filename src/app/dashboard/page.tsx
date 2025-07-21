@@ -70,7 +70,7 @@ const ExpenseSplitterDashboard = () => {
   const [showAddExpenseModal, setShowAddExpenseModal] = useState(false);
   const [] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [isMobile, setIsMobile] = useState(false;
+  const [isMobile, setIsMobile] = useState(false);
 
   
 
