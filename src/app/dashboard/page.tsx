@@ -1,4 +1,4 @@
-'use client'
+'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
 import { 
@@ -22,13 +22,30 @@ import {
   ChevronDown,
   Settings,
   LogOut,
-  HelpCircle
+  HelpCircle,
+  Mail,
+  Trash2,
+  Globe,
+  Briefcase,
+  Car,
+  Coffee,
+  Gift,
+  Music,
+  ShoppingBag,
+  Star,
+  Heart,
+  Zap
 } from 'lucide-react';
  import { useRouter } from 'next/navigation';
  import { toast } from 'react-toastify';
  import { auth } from '@/app/firebase/config';
+//  import { getAuth } from 'firebase/auth';
  import {signOut } from 'firebase/auth'
  import { useAuthState } from 'react-firebase-hooks/auth';
+ import axios from 'axios';
+
+
+
 
 
  interface Balance {
@@ -70,7 +87,7 @@ const ExpenseSplitterDashboard = () => {
   const [showAddExpenseModal, setShowAddExpenseModal] = useState(false);
   const [] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  const [isMobile, setIsMobile] = useState(false);
 
   
 
@@ -149,10 +166,29 @@ const ExpenseSplitterDashboard = () => {
     { id: 4, group: 'Weekend Getaway', member: 'Alex', amount: 800, type: 'owed', avatar: '👨‍🎨' }
   ];
 
+   const [user] = useAuthState(auth);
+     // manipulate the display name and bring out just the first letter in both names
+  let initials : string = '';
+
+  if (user?.displayName) {
+    const profileName : string = user?.displayName;
+    const word = profileName.split(' ').filter(Part => Part.length > 0);
+
+    if (word.length === 1) {
+      initials = word[0].charAt(0)
+    } else if (word.length >= 2) {
+      initials = word[0].charAt(0) + word[1].charAt(0)
+    }
+    
+  }
+
+  initials = initials.toUpperCase();
+
   const userProfile: UserProfile = {
-    name: 'John Doe',
-    email: 'john.doe@example.com',
-    avatar: 'JD',
+
+    name:  user?.displayName ?? '',
+    email: user?.email ?? '',
+    avatar: initials,
     currency: 'NGN',
     notifications: true
   };
@@ -290,10 +326,24 @@ const ExpenseSplitterDashboard = () => {
     );
   };
 
+  interface Notification {
+  id: string;
+  type: 'expense' | 'payment' | 'group' | 'reminder';
+  title: string;
+  message: string;
+  timestamp: Date;
+  isRead: boolean;
+  avatar?: string;
+  amount?: number;
+  groupName?: string;
+}
+
  const TopNav = () => {
  
   const [isDropDownOpen, setIsDropDown] = useState(false);
+  const [isNotificationOpen, setIsNotificationOpen ] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const notificationRef = useRef<HTMLDivElement>(null);
 
   const router = useRouter();
   const notify = () => toast("You've been Logged out successfully!", {
@@ -301,10 +351,79 @@ const ExpenseSplitterDashboard = () => {
   })
 
   const [user] = useAuthState(auth);
-  console.log(user);
+  // console.log(user);
 
-    // manipulate the display name and bring out just the first letter in both names
-  let initials : string = '';
+   // Sample notifications data - replace with your actual data source
+  const [notifications] = useState<Notification[]>([
+    {
+      id: '1',
+      type: 'expense',
+      title: 'New expense added',
+      message: 'John added ₦5,000 for dinner at Ocean Basket',
+      timestamp: new Date(Date.now() - 1000 * 60 * 5), // 5 minutes ago
+      isRead: false,
+      amount: 5000,
+      groupName: 'Weekend Getaway'
+    },
+    {
+      id: '2',
+      type: 'payment',
+      title: 'Payment received',
+      message: 'Sarah paid you ₦2,500 for lunch expenses',
+      timestamp: new Date(Date.now() - 1000 * 60 * 30), // 30 minutes ago
+      isRead: false,
+      amount: 2500
+    },
+    {
+      id: '3',
+      type: 'group',
+      title: 'Added to group',
+      message: 'You were added to "Office Lunch" group',
+      timestamp: new Date(Date.now() - 1000 * 60 * 60 * 2), // 2 hours ago
+      isRead: true,
+      groupName: 'Office Lunch'
+    },
+    {
+      id: '4',
+      type: 'reminder',
+      title: 'Payment reminder',
+      message: 'Don\'t forget to settle up with Mike for last week\'s trip',
+      timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24), // 1 day ago
+      isRead: true,
+      amount: 8000
+    }
+  ]);
+
+  // Calculate unread notifications count
+  const unreadCount = notifications.filter(n => !n.isRead).length;
+
+  // Get initials from user display name
+  let initials: string = '';
+  if (user?.displayName) {
+    const profileName: string = user?.displayName;
+    const word = profileName.split(' ').filter(Part => Part.length > 0);
+
+    if (word.length === 1) {
+      initials = word[0].charAt(0);
+    } else if (word.length >= 2) {
+      initials = word[0].charAt(0) + word[1].charAt(0);
+    }
+  }
+
+  initials = initials.toUpperCase();
+
+  useEffect (() =>{
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node )) {
+        setIsDropDown(false);
+      } 
+      if (notificationRef.current && !notificationRef.current.contains(event.target as Node)) {
+        setIsNotificationOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   if (user?.displayName) {
     const profileName : string = user?.displayName;
@@ -320,17 +439,6 @@ const ExpenseSplitterDashboard = () => {
 
   initials = initials.toUpperCase();
 
-  // close dropdown when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setIsDropDown(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
 
   const  handleLogout = async () => {
 
@@ -347,6 +455,42 @@ const ExpenseSplitterDashboard = () => {
     }
 
     
+  };
+
+  // Format timestamp for display
+  const formatTimestamp = (timestamp: Date): string => {
+    const now = new Date();
+    const diff = now.getTime() - timestamp.getTime();
+    const minutes = Math.floor(diff / (1000 * 60));
+    const hours = Math.floor(diff / (1000 * 60 * 60));
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+
+    if (minutes < 1) return 'Just now';
+    if (minutes < 60) return `${minutes}m ago`;
+    if (hours < 24) return `${hours}h ago`;
+    return `${days}d ago`;
+  };
+
+  // Returns a color class based on notification type
+  const getNotificationColor = (type: Notification['type']): string => {
+    switch (type) {
+      case 'expense':
+        return 'bg-blue-100 text-blue-600';
+      case 'payment':
+        return 'bg-green-100 text-green-600';
+      case 'group':
+        return 'bg-purple-100 text-purple-600';
+      case 'reminder':
+        return 'bg-yellow-100 text-yellow-600';
+      default:
+        return 'bg-gray-100 text-gray-600';
+    }
+  };
+
+  // Dummy clearAllNotifications function
+  const clearAllNotifications = () => {
+    // Implement logic to clear notifications here
+    console.log('Clear all notifications clicked');
   };
 
   const dropdownItems = [
@@ -377,6 +521,12 @@ const ExpenseSplitterDashboard = () => {
     }
   ];
     
+   function markAllAsRead(id: string): void {
+     // Implement your logic to mark a notification as read by id here
+     // For now, just log the id
+     console.log('Mark notification as read:', id);
+   }
+
   return (
     <div className={`h-16 bg-white border-b border-gray-200 top-0 ${!isMobile ? (sidebarCollapsed ? 'ml-16' : 'ml-64') : ''} right-0 z-30 transition-all duration-300`}>
       <div className="flex items-center justify-between px-6 h-full">
@@ -393,10 +543,140 @@ const ExpenseSplitterDashboard = () => {
         
         <div className="flex items-center space-x-4">
           {/* Notification Bell */}
-          <button className="relative p-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-all duration-200">
-            <Bell className="w-5 h-5" />
-            <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full animate-pulse"></span>
-          </button>
+          <div className="relative" ref={notificationRef}>
+            <button 
+              onClick={() => setIsNotificationOpen(!isNotificationOpen)}
+              className="relative p-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:ring-offset-2"
+            >
+              <Bell className="w-5 h-5" />
+              {unreadCount > 0 && (
+                <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center font-medium animate-pulse">
+                  {unreadCount > 9 ? '9+' : unreadCount}
+                </span>
+              )}
+            </button>
+
+            {/* Notification Dropdown */}
+            {isNotificationOpen && (
+              <div className="absolute right-0 mt-2 w-96 bg-white rounded-xl shadow-lg border border-gray-200 z-50 animate-in slide-in-from-top-2 duration-200">
+                {/* Header */}
+                <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <Bell className="w-5 h-5 text-gray-600" />
+                    <h3 className="text-lg font-semibold text-gray-900">Notifications</h3>
+                    {unreadCount > 0 && (
+                      <span className="bg-red-500 text-white text-xs px-2 py-1 rounded-full font-medium">
+                        {unreadCount}
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    {unreadCount > 0 && (
+                      <button
+                        onClick={() => {
+                          // Implement mark all as read logic here
+                          notifications.forEach(n => {
+                            if (!n.isRead) markAllAsRead(n.id);
+                          });
+                        }}
+                        className="text-xs text-blue-600 hover:text-blue-800 font-medium"
+                      >
+                        Mark all read
+                      </button>
+                    )}
+                    <button
+                      onClick={() => setIsNotificationOpen(false)}
+                      className="text-gray-400 hover:text-gray-600 transition-colors"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Notifications List */}
+                <div className="max-h-96 overflow-y-auto">
+                  {notifications.length === 0 ? (
+                    <div className="px-4 py-8 text-center">
+                      <Bell className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                      <p className="text-gray-500 text-sm">No notifications yet</p>
+                      <p className="text-gray-400 text-xs mt-1">We&apos;ll notify you when something happens</p>
+                    </div>
+                  ) : (
+                    <div className="py-2">
+                      {notifications.map((notification) => (
+                        <div
+                          key={notification.id}
+                          className={`px-4 py-3 hover:bg-gray-50 transition-colors duration-150 cursor-pointer border-l-4 ${
+                            notification.isRead 
+                              ? 'border-transparent bg-white' 
+                              : 'border-blue-500 bg-blue-50/30'
+                          }`}
+                          onClick={() => !notification.isRead && markAllAsRead(notification.id)}
+                        >
+                          <div className="flex items-start space-x-3">
+                            <div className={`p-2 rounded-full flex-shrink-0 ${getNotificationColor(notification.type)}`}>
+                              {/* {getNotificationColor(notification.type)} */}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center justify-between mb-1">
+                                <p className={`text-sm font-medium ${
+                                  notification.isRead ? 'text-gray-700' : 'text-gray-900'
+                                }`}>
+                                  {notification.title}
+                                </p>
+                                <span className="text-xs text-gray-500 flex-shrink-0">
+                                  {formatTimestamp(notification.timestamp)}
+                                </span>
+                              </div>
+                              <p className={`text-sm ${
+                                notification.isRead ? 'text-gray-500' : 'text-gray-700'
+                              }`}>
+                                {notification.message}
+                              </p>
+                              {(notification.amount || notification.groupName) && (
+                                <div className="flex items-center mt-2 space-x-3">
+                                  {notification.amount && (
+                                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                      ₦{notification.amount.toLocaleString()}
+                                    </span>
+                                  )}
+                                  {notification.groupName && (
+                                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                                      {notification.groupName}
+                                    </span>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                            {!notification.isRead && (
+                              <div className="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0 mt-2"></div>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Footer */}
+                {notifications.length > 0 && (
+                  <div className="px-4 py-3 border-t border-gray-100 bg-gray-50 rounded-b-xl">
+                    <div className="flex items-center justify-between">
+                      <button
+                        onClick={clearAllNotifications}
+                        className="text-xs text-red-600 hover:text-red-800 font-medium transition-colors"
+                      >
+                        Clear all
+                      </button>
+                      <button className="text-xs text-blue-600 hover:text-blue-800 font-medium transition-colors">
+                        View all notifications
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
           
           {/* Profile Dropdown */}
           <div className="relative" ref={dropdownRef}>
@@ -507,25 +787,430 @@ const ExpenseSplitterDashboard = () => {
     </div>
   );
 
-  const MyGroups = () => (
-  <div className="min-h-screen bg-gray-50">
-    <div className={`${!isMobile ? (sidebarCollapsed ? 'ml-16' : 'ml-64') : ''} pt-16 transition-all duration-300`}>
-      <div className="p-8">
-        <h1 className="text-3xl font-bold text-gray-800 mb-6">All Groups</h1>
+  interface CreateGroupModalProps {
+    isOpen: boolean;
+    onClose: () => void;
+    onCreate: (group: Group) => void;
+  }
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {groups.map((group) => (
-            <GroupCard
-              key={group.id}
-              group={group}
-              
+  const CreateGroupModal: React.FC<CreateGroupModalProps> = ({ isOpen, onClose, onCreate }) => {
+
+    const [ formData, setFormData ] = useState({
+      name: '',
+      description: '',
+      currency: 'NGN',
+      icon: 'Users',
+      createdBy: '',
+    })
+
+    const [members, setMembers] = useState<{ id: number; email: string; name: string; status: string; avatar: string }[]>([]);
+    const [emailInput, setEmailInput] = useState('');
+    const [emailError, setEmailError] = useState('');
+
+    const currencies = [
+      { code: 'NGN', symbol: '₦', name: 'Nigeria Naira' },
+      { code: 'USD', symbols: '$', name: 'United States Dollar' },
+      { code: 'EUR', symbol: '€', name: 'Euro' },
+      { code: 'GBP', symbol: '£', name: 'British Pound' },
+      { code: 'JPY', symbol: '¥', name: 'Japanese Yen' }
+    ]
+
+    const groupIcons: { name: string; icon: React.ElementType; color: keyof typeof colorClasses }[] = [
+      { name: 'Users', icon: Users, color: 'blue' },
+      { name: 'Home', icon: Home, color: 'green' },
+      { name: 'Briefcase', icon: Briefcase, color: 'purple' },
+      { name: 'Car', icon: Car, color: 'red' },
+      { name: 'Coffee', icon: Coffee, color: 'orange' },
+      { name: 'Gift', icon: Gift, color: 'pink' },
+      { name: 'Music', icon: Music, color: 'indigo' },
+      { name: 'ShoppingBag', icon: ShoppingBag, color: 'yellow' },
+      { name: 'Star', icon: Star, color: 'cyan' },
+      { name: 'Heart', icon: Heart, color: 'rose' },
+      { name: 'Zap', icon: Zap, color: 'emerald' },
+      { name: 'Globe', icon: Globe, color: 'slate' },
+    ];
+
+    const colorClasses = {
+      blue: 'from-blue-500 to-cyan-500',
+      green: 'from-green-500 to-emerald-500',
+      purple: 'from-purple-500 to-pink-500',
+      red: 'from-red-500 to-orange-500',
+      orange: 'from-orange-500 to-yellow-500',
+      pink: 'from-pink-500 to-rose-500',
+      indigo: 'from-indigo-500 to-violet-500',
+      yellow: 'from-yellow-500 to-amber-500',
+      cyan: 'from-cyan-500 to-teal-500',
+      rose: 'from-rose-500 to-pink-500',
+      emerald: 'from-emerald-500 to-teal-500',
+      slate: 'from-slate-500 to-gray-500',
+    };
+
+    const validateEmail = (email: string): boolean => {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      return emailRegex.test(email);
+    }
+
+    const addMember = () => {
+      if (!emailInput.trim()) {
+        setEmailError('Please enter an email address');
+        return;
+      } 
+      if (!validateEmail(emailInput)) {
+        setEmailError('Please enter a valid email address');
+        return;
+      }
+      if (members.some(member => member.email  === emailInput)) {
+        setEmailError('This email is already added');
+        return;
+      }
+
+      const newMember= {
+        id: Date.now(),
+        email: emailInput.trim(),
+        name: emailInput.trim().split('@')[0].replace(/[._]/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+        status: 'pending',
+        avatar: emailInput.trim().charAt(0).toUpperCase(),
+      };
+
+      setMembers([...members, newMember]);
+      setEmailInput('');
+      setEmailError('');
+    };
+
+    const removeMember = (id : number) => {
+      setMembers(members.filter(member => member.id !== id));
+
+    }
+
+    const handleSubmit = () => {
+    if (!formData.name.trim()) return;
+
+    const selectedIconObj = groupIcons.find(icon => icon.name === formData.icon);
+    const groupData = {
+      ...formData,
+      members: members.length + 1, // +1 for the creator
+      membersList: members,
+      id: Date.now(),
+      totalSpent: 0,
+      yourBalance: 0,
+      color: selectedIconObj ? colorClasses[selectedIconObj.color] : colorClasses.blue,
+      recentActivity: 'No activity yet'
+    };
+
+    onCreate(groupData);
+    onClose();
+    
+    // Reset form
+    setFormData({
+      name: '',
+      description: '',
+      currency: 'NGN',
+      icon: 'Users',
+      createdBy: '',
+    });
+    setMembers([]);
+    setEmailInput('');
+    setEmailError('');
+  };
+    const selectedIcon = groupIcons.find(icon => icon.name === formData.icon);
+  const IconComponent = selectedIcon ? selectedIcon.icon : Users;
+
+  if (!isOpen) return null;
+
+     return (
+    <div className="fixed inset-0 transition-opacity bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+        {/* Header */}
+        <div className="p-6 border-b border-gray-200">
+          <div className="flex items-center justify-between">
+            <h2 className="text-2xl font-bold bg-gradient-to-r from-blue-500 to-purple-600 bg-clip-text text-transparent">Create New Group</h2>
+            <button
+              onClick={onClose}
+              className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+            >
+              <X className="w-5 h-5 text-gray-500" />
+            </button>
+          </div>
+        </div>
+
+        <div className="p-6 space-y-6">
+          {/* Group Name */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Group Name *
+              </label>
+            <input
+              type="text"
+              value={formData.name}
+              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 text-black focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+              placeholder="Enter group name"
+              required
             />
-          ))}
+          
+          </div>
+
+          {/* Description */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Description
+            </label>
+            <textarea
+              value={formData.description}
+              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 text-black focus:border-transparent outline-none transition-all resize-none"
+              placeholder="What's this group for?"
+              rows={3}
+            />
+            
+          </div>
+
+          {/* Currency Selection */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Currency
+            </label>
+            <select
+              value={formData.currency}
+              onChange={(e) => setFormData({ ...formData, currency: e.target.value })}
+              className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 text-black focus:border-transparent outline-none transition-all"
+            >
+              {currencies.map(currency => (
+                <option key={currency.code} value={currency.code}>
+                  {currency.symbol} {currency.name} ({currency.code})
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Icon Selection */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-3">
+              Group Icon
+            </label>
+            <div className="grid grid-cols-6 gap-3">
+              {groupIcons.map((icon) => {
+                const Icon = icon.icon;
+                const isSelected = formData.icon === icon.name;
+                return (
+                  <button
+                    key={icon.name}
+                    type="button"
+                    onClick={() => setFormData({ ...formData, icon: icon.name })}
+                    className={`p-3 rounded-xl transition-all duration-200 bg-gradient-to-r ${
+                      isSelected
+                        ? `${colorClasses[icon.color]} text-white shadow-lg transform scale-105`
+                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    }`}
+                  >
+                    <Icon className="w-6 h-6 mx-auto" />
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Add Members */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-3">
+              Add Members
+            </label>
+            <div className="space-y-3">
+              <div className="flex gap-2">
+                <div className="flex-1">
+                  <div className="relative">
+                    <Mail className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
+                    <input
+                      type="email"
+                      value={emailInput}
+                      onChange={(e) => {
+                        setEmailInput(e.target.value);
+                        setEmailError('');
+                      }}
+                      onKeyUp={(e) => e.key === 'Enter' && (e.preventDefault(), addMember())}
+                      className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl text-black focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+                      placeholder="Enter email address"
+                    />
+                  </div>
+                  {emailError && (
+                    <p className="text-red-500 text-sm mt-1">{emailError}</p>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  onClick={addMember}
+                  className="px-4 py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-xl hover:bg-blue-600 transition-colors flex items-center"
+                >
+                  <Plus className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Member List */}
+              {members.length > 0 && (
+                <div className="space-y-2 max-h-32 overflow-y-auto">
+                  {members.map((member) => (
+                    <div
+                      key={member.id}
+                      className="flex items-center justify-between p-3 bg-gray-50 rounded-xl"
+                    >
+                      <div className="flex items-center space-x-3">
+                        <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                          <span className="text-blue-600 font-medium text-sm">
+                            {member.name.charAt(0).toUpperCase()}
+                          </span>
+                        </div>
+                        <div>
+                          <p className="font-medium text-gray-800">{member.name}</p>
+                          <p className="text-sm text-gray-500">{member.email}</p>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => removeMember(member.id)}
+                        className="p-1 text-red-500 hover:bg-red-50 rounded-full transition-colors"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Preview */}
+          <div className="bg-gray-50 rounded-xl p-4">
+            <p className="text-sm font-medium text-gray-700 mb-3">Preview</p>
+            <div className={`${colorClasses[selectedIcon?.color ?? 'blue']} rounded-xl p-4 text-black relative overflow-hidden`}>
+              <div className="absolute top-2 right-2 opacity-20">
+                <IconComponent className="w-16 h-16 text-gray-800" />
+              </div>
+                <h3 className="text-lg font-semibold mb-1">
+                  {formData.name || 'Group Name'}
+                </h3>
+              
+                <p className="text-sm opacity-90 mb-2">
+                  {members.length + 1} member{members.length !== 0 ? 's' : ''}
+                </p>
+                <div className="text-xs opacity-75">
+                  Currency: {currencies.find(c => c.code === formData.currency)?.symbol} {formData.currency}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Submit Button */}
+          <div className="flex gap-3 pt-2 m-3">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 px-6 py-3 border bg-gradient-to-r from-red-300 to-red-700 border-gray-300 text-white-700 rounded-xl hover:bg-cancel-light transition-colors font-medium"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={!formData.name.trim()}
+              onClick={handleSubmit}
+              className="flex-1 px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-600  text-white rounded-xl hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors font-medium"
+            >
+              Create Group
+            </button>
+          </div>
+        </div>
+      </div>
+  );    
+  };
+
+  interface MyGroupsProps {
+   
+    setGroups: React.Dispatch<React.SetStateAction<Group[]>>;
+    isMobile: boolean;
+    sidebarCollapsed: boolean;
+    
+  }
+
+  const MyGroups: React.FC<MyGroupsProps> = ({ isMobile, sidebarCollapsed }) => {
+  const [isModalOpen, setIsModalOpen] = useState(false);
+ 
+
+  const router = useRouter();
+
+  const handleCreateGroup = async (groupData: unknown) => {
+   
+    const currentUser = auth.currentUser;
+    if (!currentUser) {
+      toast.error("You must be logged in to create a group. ");
+      return;
+    }
+
+    const token = await currentUser.getIdToken();
+   try {
+    const res = await axios.post('/api/group/create', groupData, {
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      }
+    });
+    if (res.data.success) {
+      toast.success('Group created successfully!', {
+        autoClose: 3000,
+      });
+      setIsModalOpen(false);
+      router.refresh();
+    }
+   } catch (error) {
+    toast.error('Failed to create group. Please try again.', {
+      autoClose: 3000,
+    });
+    console.error('Error creating group:', error);
+   }
+  };
+
+ 
+
+  return (
+    <div className="min-h-screen bg-gray-50 ">
+      <div className={`${!isMobile ? (sidebarCollapsed ? 'ml-16' : 'ml-64') : ''} pt-16 transition-all duration-300`}>
+        <div className="p-4 sm:p-6 lg:p-8">
+          {/* Responsive Header */}
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">All Groups</h1>
+            
+            {/* Responsive Create Group Button */}
+            <button
+              onClick={() => setIsModalOpen(true)}
+              className="group relative px-4 py-2.5 sm:px-6 sm:py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white text-sm sm:text-base rounded-xl hover:from-purple-600 hover:to-blue-500 transition-all duration-300 font-medium inline-flex items-center justify-center gap-2 shadow-lg hover:shadow-xl transform hover:scale-105 w-full sm:w-auto"
+            >
+              <Plus className="w-4 h-4 sm:w-5 sm:h-5 group-hover:rotate-90 transition-transform duration-300" />
+              <span className="whitespace-nowrap">Create Group</span>
+              <div className="absolute inset-0 bg-gradient-to-r from-purple-600 to-blue-500 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 -z-10" />
+            </button>
+          </div>
+
+          {/* Groups Grid - using your existing structure */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+            {groups.map((group) => (
+              <GroupCard
+                key={group.id}
+                group={group}
+              />
+              
+            ))
+            }
+          </div>
+
+          {/* Create Group Modal */}
+          <CreateGroupModal
+            isOpen={isModalOpen}
+            onClose={() => setIsModalOpen(false)}
+            onCreate={handleCreateGroup}
+          /> 
         </div>
       </div>
     </div>
-  </div>
-);
+  );
+};
 
 
   const Dashboard = () => (
@@ -1054,6 +1739,7 @@ const ExpenseSplitterDashboard = () => {
     setShowAddExpenseModal(false);
   };
 
+
   return (
     <div className={`fixed inset-0 z-[999] transition-opacity duration-300 ${showAddExpenseModal ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
       <div className="absolute inset-0 backdrop-blur-sm bg-black/30 z-50" onClick={() => setShowAddExpenseModal(false)}></div>
@@ -1249,9 +1935,9 @@ const ExpenseSplitterDashboard = () => {
   );
 };
 
-  const FloatingAddButton = () => (
+  const FloatingAddButton = ({ onClick }: { onClick: () => void }) => (
     <button 
-      onClick={() => setShowAddExpenseModal(true)}
+      onClick={onClick}
       className="fixed bottom-8 right-8 w-14 h-14 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105 z-30"
     >
       <Plus className="w-6 h-6 mx-auto" />
@@ -1266,14 +1952,16 @@ const ExpenseSplitterDashboard = () => {
       
       {currentPage === 'dashboard' && <Dashboard />}
       {currentPage === 'group-detail' && <GroupDetail />}
-      {currentPage === 'groups' && <MyGroups />}
+      {currentPage === 'groups' && <MyGroups setGroups={function (): void {
+          throw new Error('Function not implemented.');
+        } } isMobile={false} sidebarCollapsed={false} />}
       {currentPage === 'settle' && <SettleBalance />}
       {currentPage === 'settle-detail' && <SettleBalanceDetail />}
       {currentPage === 'profile' && <Profile />}
       
       
       <AddExpenseModal />
-      <FloatingAddButton />
+      <FloatingAddButton onClick={() => setShowAddExpenseModal(true)} />
       </div>
     </div>
   );

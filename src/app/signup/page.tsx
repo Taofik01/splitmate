@@ -19,6 +19,7 @@ import Link from 'next/link';
 import { browserLocalPersistence, createUserWithEmailAndPassword, setPersistence, signInWithPopup, GoogleAuthProvider, GithubAuthProvider } from 'firebase/auth';
 import { auth } from '@/app/firebase/config';
 import { toast } from 'react-toastify';
+import { activatePendingGroupMembership } from '@/lib/actions/registerUser'
 
 
 const SplitMateSignUp = () => {
@@ -125,7 +126,8 @@ const handleInputChange = (e: InputChangeEvent): void => {
       setIsLoading(true);
       try {
         await setPersistence(auth, browserLocalPersistence);
-         await createUserWithEmailAndPassword(auth, formData.email, formData.password)
+         await createUserWithEmailAndPassword(auth, formData.email, formData.password);
+         await activatePendingGroupMembership(formData.email);
       
 
       setFormData({
@@ -173,7 +175,11 @@ const handleInputChange = (e: InputChangeEvent): void => {
     const provider = new GoogleAuthProvider();
     try {
       await setPersistence(auth, browserLocalPersistence);
-      await signInWithPopup(auth, provider);
+      const result = await signInWithPopup(auth, provider);
+      const email = result.user?.email;
+      if (email) {
+        await activatePendingGroupMembership(email);
+      }
 
       notify();
 
@@ -197,8 +203,12 @@ const handleInputChange = (e: InputChangeEvent): void => {
     setIsLoading(true);
     try {
       await setPersistence(auth, browserLocalPersistence);
-      await signInWithPopup(auth, provider);
-       setTimeout(() => {
+      const result = await signInWithPopup(auth, provider);
+      const email = result.user?.email;
+      if (email) {
+        await activatePendingGroupMembership(email);
+      }
+      setTimeout(() => {
       
       setStep(2);
      }, 1500);
