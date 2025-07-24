@@ -1,3 +1,6 @@
+
+'use server';
+
 import { db } from "@/lib/firebaseAdmin"
 
 export async function activatePendingGroupMembership(email: string) {
