@@ -1974,4 +1974,5 @@ export default ExpenseSplitterDashboard;
 // peak fooling day 5
 // Day 6 of peak fooling 
 
-//day 1 of peak foolin
+//day 1 of peak fooling
+// day 2 of peak foolung 
