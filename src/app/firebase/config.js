@@ -24,3 +24,5 @@ const auth = getAuth(app);
 
 export { app, db, auth }
 
+// Fooling around with database config
+
