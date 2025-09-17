@@ -106,3 +106,5 @@ export default function Navbar () {
       </nav>
     )
 }
+
+//day 1 of being a clown 
