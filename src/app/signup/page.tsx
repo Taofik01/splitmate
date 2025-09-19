@@ -5,7 +5,7 @@ import {
   Users, 
   Mail, 
   Lock, 
-  User, 
+  User as LucideUser,  // so as not to clash with user authenthication  
   Eye, 
   EyeOff, 
   ArrowLeft,
@@ -20,6 +20,11 @@ import { browserLocalPersistence, createUserWithEmailAndPassword, setPersistence
 import { auth } from '@/app/firebase/config';
 import { toast } from 'react-toastify';
 import { activatePendingGroupMembership } from '@/lib/actions/registerUser'
+// import { extractUserInfo } from '../../utils/helpers'
+import { doc, setDoc } from 'firebase/firestore';
+import { db } from '../firebase/config';
+import { User } from 'firebase/auth';
+
 
 
 const SplitMateSignUp = () => {
@@ -82,9 +87,6 @@ const handleInputChange = (e: InputChangeEvent): void => {
 
 
 
-
- 
-
   const validateForm = () => {
     const newErrors = {};
     
@@ -120,13 +122,37 @@ const handleInputChange = (e: InputChangeEvent): void => {
 
   
 
+
+
+
+const syncUserToFirestore = async (user: { uid: string; email: string | null; name: string }) => {
+  await setDoc(doc(db, 'users', user.uid), {
+    email: user.email,
+    name: user.name,
+    createdAt: new Date().toISOString()
+  }, { merge: true });
+};
+const extractUserInfo = (user: User) => ({
+  uid: user.uid,
+  email: user.email,
+  name: user.displayName || 'Anonymous'
+});
+
+
   const handleSubmit = async (e: FormEvent<HTMLButtonElement>): Promise <void> => {
     e.preventDefault();
     if (validateForm()) {
       setIsLoading(true);
       try {
         await setPersistence(auth, browserLocalPersistence);
-         await createUserWithEmailAndPassword(auth, formData.email, formData.password);
+       const result =  await createUserWithEmailAndPassword(auth, formData.email, formData.password);
+        const userInfo = extractUserInfo(result.user);
+
+      // sync to firestore
+
+      await syncUserToFirestore(userInfo);
+
+
          await activatePendingGroupMembership(formData.email);
       
 
@@ -176,6 +202,11 @@ const handleInputChange = (e: InputChangeEvent): void => {
     try {
       await setPersistence(auth, browserLocalPersistence);
       const result = await signInWithPopup(auth, provider);
+      const userInfo = extractUserInfo(result.user);
+
+      // sync to firestore
+
+      await syncUserToFirestore(userInfo);
       const email = result.user?.email;
       if (email) {
         await activatePendingGroupMembership(email);
@@ -204,6 +235,11 @@ const handleInputChange = (e: InputChangeEvent): void => {
     try {
       await setPersistence(auth, browserLocalPersistence);
       const result = await signInWithPopup(auth, provider);
+      const userInfo = extractUserInfo(result.user);
+      // sync to firestore
+
+      await syncUserToFirestore(userInfo);
+
       const email = result.user?.email;
       if (email) {
         await activatePendingGroupMembership(email);
@@ -334,7 +370,7 @@ const handleInputChange = (e: InputChangeEvent): void => {
                   First Name
                 </label>
                 <div className="relative">
-                  <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                  <LucideUser className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                   <input
                     type="text"
                     name="firstName"
@@ -359,7 +395,7 @@ const handleInputChange = (e: InputChangeEvent): void => {
                   Last Name
                 </label>
                 <div className="relative">
-                  <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                  <LucideUser className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                   <input
                     type="text"
                     name="lastName"
