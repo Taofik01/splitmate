@@ -47,7 +47,7 @@ import { collection, getDocs, query, serverTimestamp, where, addDoc } from 'fire
 import { db } from '../firebase/config';
 import { formatTimeAgo, getAvatar } from '../../utils/activityUtils';
 import { calculateDashboardStats, DashboardStats, Expense, subscribeToUserGroups } from '../../utils/dashboardStats';
-import { Group as ImportedGroup } from 'c:/Users/Owner/Desktop/splitmate/src/utils/dashboardStats';
+import { Group as ImportedGroup } from '../../utils/dashboardStats';
 
 
 
