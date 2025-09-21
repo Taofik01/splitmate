@@ -234,8 +234,8 @@ const ExpenseSplitterDashboard = () => {
 
 
   const getBalanceText = (balance: number): string => {
-    if (balance > 0) return `You are owed ${formatCurrency(balance)}`;
-    if (balance < 0) return `You owe ${formatCurrency(Math.abs(balance))}`;
+    if (balance > 0) return `You are owed ₦{formatCurrency(balance)}`;
+    if (balance < 0) return `You owe ₦{formatCurrency(Math.abs(balance))}`;
     return 'You are settled up';
   };
 
@@ -1603,7 +1603,7 @@ useEffect(() => {
                   <TrendingUp className="w-5 h-5 text-green-500" />
                 </div>
                 <p className="text-gray-600 text-sm">Total Spent</p>
-                <p className="text-2xl font-bold text-gray-800">${stats.totalSpent.toFixed(2)}</p>
+                <p className="text-2xl font-bold text-gray-800">₦{stats.totalSpent.toFixed(2)}</p>
               </div>
 
               <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
@@ -1625,7 +1625,7 @@ useEffect(() => {
                   <Calendar className="w-5 h-5 text-gray-400" />
                 </div>
                 <p className="text-gray-600 text-sm">You Owe</p>
-                <p className="text-2xl font-bold text-red-600">${stats.amountOwed.toFixed(2)}</p>
+                <p className="text-2xl font-bold text-red-600">₦{stats.amountOwed.toFixed(2)}</p>
               </div>
             </div>
 

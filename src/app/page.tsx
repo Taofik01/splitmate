@@ -113,16 +113,16 @@ export default function Home() {
                       <div className="bg-white rounded-xl p-4 mb-4 shadow-sm">
                         <div className="text-center">
                           <p className="text-gray-600 text-sm">You are owed</p>
-                          <p className="text-2xl font-bold text-green-600">+$127.50</p>
+                          <p className="text-2xl font-bold text-green-600">+₦12,700</p>
                         </div>
                       </div>
 
                       {/* Mock Expenses */}
                       <div className="space-y-2">
                         {[
-                          { name: 'Groceries', amount : '$85.50', user: 'Sarah'},    
-                          { name: 'Utilities', amount : '$120.00', user: 'Mike'},    
-                          { name: 'Internet', amount : '$60.00', user: 'You'}    
+                          { name: 'Groceries', amount : '₦35,000.00', user: 'Sarah'},    
+                          { name: 'Utilities', amount : '₦8,500.00', user: 'Mike'},    
+                          { name: 'Internet', amount : '₦6000.00', user: 'You'}    
                         ].map((expense, idx) => (
                           <div key={idx} className="flex items-center justify-between bg-white rounded-lg shadow-sm p-3">
                             <div className="flex items-center">
@@ -278,7 +278,8 @@ export default function Home() {
                   ].map((link) => (
                     <li key={link.name}>
                       <a
-                        href={link.href}
+                        // href={link.href}
+                        
                         className="text-gray-300 hover:text-white transition-colors duration-200 hover:underline decoration-blue-500 underline-offset-4"
                       >
                         {link.name}
@@ -304,7 +305,7 @@ export default function Home() {
                   ].map((link) => (
                     <li key={link.name}>
                       <a
-                        href={link.href}
+                        // href={link.href}
                         className="text-gray-300 hover:text-white transition-colors duration-200 hover:underline decoration-purple-500 underline-offset-4 inline-flex items-center"
                       >
                         {link.name}
