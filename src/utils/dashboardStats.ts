@@ -139,7 +139,8 @@ export const fetchUserGroups = async (userEmail: string): Promise<Group[]> => {
       groups.push({
         id: doc.id,
         name: data.name || '',
-        members: data.members || [],
+        // members: data.members || [],
+         members: Array.isArray(data.members) ? data.members : [], 
         expenses: data.expenses || []
       });
     });

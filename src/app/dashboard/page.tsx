@@ -46,7 +46,8 @@ import axios from 'axios';
 import { collection, getDocs, query, serverTimestamp, where, addDoc } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import { formatTimeAgo, getAvatar } from '../../utils/activityUtils';
-import { calculateDashboardStats, DashboardStats, subscribeToUserGroups  } from '../../utils/dashboardStats';
+import { calculateDashboardStats, DashboardStats, Expense, subscribeToUserGroups } from '../../utils/dashboardStats';
+import { Group as ImportedGroup } from 'c:/Users/Owner/Desktop/splitmate/src/utils/dashboardStats';
 
 
 
@@ -70,10 +71,12 @@ interface UserProfile {
   notifications: boolean;
 }
 type Member = {
-  uid: string;
-  email: string;
+  uid?: string;
+  id: number;
+  email: string | null;
   status: string;
   userExists: boolean;
+  name?: string;
 };
 
 
@@ -82,11 +85,18 @@ interface Group {
   id: string;
   name: string;
   members: Member[];
+  membersList?: number;
   totalSpent: number;
   yourBalance: number;
   color: string;
   icon: string;
   recentActivity: string;
+  createdBy: {
+        uid: string;
+        email: string | null;
+        name: string;
+      };
+       expenses?: Expense[]
 }
 
 interface User {
@@ -749,83 +759,83 @@ const ExpenseSplitterDashboard = () => {
     );
   };
 
-  const GroupCard = ({ group }: { group: Group }) =>{
-//     const [groups, setGroups] = useState<Group[]>([]);
+  const GroupCard = ({ group }: { group: Group }) => {
+    //     const [groups, setGroups] = useState<Group[]>([]);
 
-// useEffect(() => {
-//   const fetchGroups = async () => {
-//     const querySnapshot = await getDocs(collection(db, 'groups'));
+    // useEffect(() => {
+    //   const fetchGroups = async () => {
+    //     const querySnapshot = await getDocs(collection(db, 'groups'));
 
-//     const groupData = await Promise.all(
-//       querySnapshot.docs.map(async (doc) => {
-//         const group = { id: doc.id, ...doc.data() } as Group;
+    //     const groupData = await Promise.all(
+    //       querySnapshot.docs.map(async (doc) => {
+    //         const group = { id: doc.id, ...doc.data() } as Group;
 
-//         // ✅ Fetch latest activity from subcollection
-//         const activityQuery = query(
-//           collection(db, 'groups', doc.id, 'groupActivity'),
-//           orderBy('timestamp', 'desc'),
-//           limit(1)
-//         );
+    //         // ✅ Fetch latest activity from subcollection
+    //         const activityQuery = query(
+    //           collection(db, 'groups', doc.id, 'groupActivity'),
+    //           orderBy('timestamp', 'desc'),
+    //           limit(1)
+    //         );
 
-//         const activitySnapshot = await getDocs(activityQuery);
-//         const latestActivity = activitySnapshot.docs[0]?.data()?.message || 'No recent activity';
+    //         const activitySnapshot = await getDocs(activityQuery);
+    //         const latestActivity = activitySnapshot.docs[0]?.data()?.message || 'No recent activity';
 
-//         return {
-//           ...group,
-//           recentActivity: latestActivity
-//         };
-//       })
-//     );
+    //         return {
+    //           ...group,
+    //           recentActivity: latestActivity
+    //         };
+    //       })
+    //     );
 
-//     setGroups(groupData);
-//   };
+    //     setGroups(groupData);
+    //   };
 
-//   fetchGroups();
-// }, []);
-    
-   return (
-    <div
-      className="bg-white rounded-2xl shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer transform hover:-translate-y-1 border border-gray-100"
-      onClick={() => {
-        setSelectedGroup(group);
-        setCurrentPage('group-detail');
-      }}
-    >
-      <div className={`h-32 bg-gradient-to-br ${group.color} rounded-t-2xl p-6 relative overflow-hidden`}>
-        <div className="absolute top-4 right-4 text-4xl opacity-20">
-          {group.icon}
-        </div>
-        <div className="text-white">
-          <h3 className="text-xl font-bold mb-2">{group.name}</h3>
-          <p className="text-white/80 text-sm">{group.members.length} members</p>
-        </div>
-      </div>
+    //   fetchGroups();
+    // }, []);
 
-      <div className="p-6">
-        <div className="flex justify-between items-start mb-4">
-          <div>
-            <p className="text-gray-600 text-sm mb-1">Total Spent</p>
-            <p className="text-2xl font-bold text-gray-800">{formatCurrency(group.totalSpent)}</p>
+    return (
+      <div
+        className="bg-white rounded-2xl shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer transform hover:-translate-y-1 border border-gray-100"
+        onClick={() => {
+          setSelectedGroup(group);
+          setCurrentPage('group-detail');
+        }}
+      >
+        <div className={`h-32 bg-gradient-to-br ${group.color} rounded-t-2xl p-6 relative overflow-hidden`}>
+          <div className="absolute top-4 right-4 text-4xl opacity-20">
+            {group.icon}
           </div>
-          <div className="text-right">
-            <p className="text-gray-600 text-sm mb-1">Your Balance</p>
-            <p className={`text-lg font-semibold ${getBalanceColor(group.yourBalance)}`}>
-              {formatCurrency(Math.abs(group.yourBalance))}
-            </p>
+          <div className="text-white">
+            <h3 className="text-xl font-bold mb-2">{group.name}</h3>
+            <p className="text-white/80 text-sm">{group.members.length} members</p>
           </div>
         </div>
 
-        <div className="border-t border-gray-100 pt-2">
-          {/* <p className="text-gray-500 text-sm">{group.recentActivity}</p> */}
-        </div>
+        <div className="p-6">
+          <div className="flex justify-between items-start mb-4">
+            <div>
+              <p className="text-gray-600 text-sm mb-1">Total Spent</p>
+              <p className="text-2xl font-bold text-gray-800">{formatCurrency(group.totalSpent)}</p>
+            </div>
+            <div className="text-right">
+              <p className="text-gray-600 text-sm mb-1">Your Balance</p>
+              <p className={`text-lg font-semibold ${getBalanceColor(group.yourBalance)}`}>
+                {formatCurrency(Math.abs(group.yourBalance))}
+              </p>
+            </div>
+          </div>
 
-        <div className="mt-4 flex justify-end">
-          <ArrowRight className="w-5 h-5 text-gray-400" />
+          <div className="border-t border-gray-100 pt-2">
+            {/* <p className="text-gray-500 text-sm">{group.recentActivity}</p> */}
+          </div>
+
+          <div className="mt-4 flex justify-end">
+            <ArrowRight className="w-5 h-5 text-gray-400" />
+          </div>
         </div>
       </div>
-    </div>
-  );
-};
+    );
+  };
 
   interface CreateGroupModalProps {
     isOpen: boolean;
@@ -843,7 +853,9 @@ const ExpenseSplitterDashboard = () => {
       createdBy: '',
     })
 
-    const [members, setMembers] = useState<{ id: number; email: string; name: string; status: string; avatar: string }[]>([]);
+    const [members, setMembers] = useState<{
+      uid?: string; id: number; email: string; name: string; status: string; avatar: string
+    }[]>([]);
     const [emailInput, setEmailInput] = useState('');
     const [emailError, setEmailError] = useState('');
 
@@ -922,43 +934,59 @@ const ExpenseSplitterDashboard = () => {
 
     }
 
- 
- const [ currentUser, loading] = useAuthState(auth) ;
- console.log(currentUser);
+
+    const [currentUser, loading] = useAuthState(auth);
+    console.log(currentUser);
 
 
     const handleSubmit = () => {
       if (!formData.name.trim()) return;
 
-       if (!currentUser) {
-    console.error('User not authenticated');
-    return;
-  }
+      if (!currentUser) {
+        console.error('User not authenticated');
+        return;
+      }
 
 
       const selectedIconObj = groupIcons.find(icon => icon.name === formData.icon);
-     
 
-      const creatorMember = {
-  email: currentUser.email,
-  name: currentUser.displayName || 'Anonymous'
-};
 
-   const groupData = {
+      const creatorMember: Member = {
+        uid: currentUser.uid,  
+        id: 1,                            // ✅ Firebase-generated
+        email: currentUser.email,                            // string | null
+        name: currentUser.displayName || "Anonymous",
+        status: "active",                                    // default
+        userExists: true                                     // since it's a real user
+      };
+
+      const normalizedMembers: Member[] = members.map(m => ({
+        uid: m.uid ?? "",     // empty until they register 
+        id: m.id ?? "",          
+        email: m.email,
+        name: m.name,
+        status: m.status || "pending",
+        userExists: !!m.uid            // true if they already exist in Firebase
+      }));
+
+
+
+     const groupData: Group = { // 👈 Add type annotation here
   ...formData,
-  members:  [creatorMember, ...members],
-  membersList: [creatorMember, ...members], 
+  members: [creatorMember, ...normalizedMembers],
+  membersList: [creatorMember, ...normalizedMembers].length, // This is correct
   id: Date.now().toString(),
   totalSpent: 0,
   yourBalance: 0,
   color: selectedIconObj ? colorClasses[selectedIconObj.color] : colorClasses.blue,
-  recentActivity: 'No activity yet',
+  recentActivity: "No activity yet",
   createdBy: {
     uid: currentUser.uid,
     email: currentUser.email,
-    name: currentUser.displayName || 'Anonymous'
+    name: currentUser.displayName || "Anonymous"
   }
 };
+
 
 
       onCreate(groupData);
@@ -1232,16 +1260,18 @@ const ExpenseSplitterDashboard = () => {
       }
     };
 
-    type Group = {
-      id: string;
-      name: string;
-      members: Member[];
-      totalSpent: number;
-      yourBalance: number;
-      color: string;
-      icon: string;
-      recentActivity: string;
-    };
+    // type Group = {
+    //   id: string;
+    //   name: string;
+    //   members: Member[];
+    //   membersList?: number;
+    //   totalSpent: number;
+    //   yourBalance: number;
+    //   color: string;
+    //   icon: string;
+    //   recentActivity: string;
+   
+    // };
 
 
     const [groups, setGroups] = useState<Group[]>([]);
@@ -1254,29 +1284,33 @@ const ExpenseSplitterDashboard = () => {
       Default: '❓',
     };
 
+useEffect(() => {
+  const fetchGroups = async () => {
+    const querySnapshot = await getDocs(collection(db, 'groups'));
+    const groupData = querySnapshot.docs.map(doc => {
+      const data = doc.data();
+      console.log('Raw group data:', data);
 
-    useEffect(() => {
-      const fetchGroups = async () => {
-        const querySnapshot = await getDocs(collection(db, 'groups'));
-        const groupData = querySnapshot.docs.map(doc => {
-          const data = doc.data();
-          console.log('Raw group data:', data); // 👈 This will show you everything
-          return {
-            id: doc.id,
-            name: data.name,
-            members: Array.isArray(data.members) ? data.members.length : 0,
-            totalSpent: data.totalSpent || 0,
-            yourBalance: data.yourBalance || 0,
-            color: data.color || 'from-gray-500 to-gray-700',
-            icon: emojiMap[data.icon] || emojiMap.Default,
-            recentActivity: data.recentActivity || 'No recent activity',
-          };
-        });
-        setGroups(groupData);
+      const membersArray = Array.isArray(data.members) ? data.members : [];
+
+      return {
+        id: doc.id,
+        name: data.name,
+        members: membersArray,
+        membersList: membersArray.length,
+        totalSpent: data.totalSpent || 0,
+        yourBalance: data.yourBalance || 0,
+        color: data.color || 'from-gray-500 to-gray-700',
+        icon: emojiMap[data.icon] || emojiMap.Default,
+        recentActivity: data.recentActivity || 'No recent activity',
+        // Add the 'createdBy' property here with a default or fetched value
+        createdBy: data.createdBy || { uid: '', email: '', name: 'Anonymous' } 
       };
-
-      fetchGroups();
-    }, []);
+    });
+    setGroups(groupData);
+  };
+  fetchGroups();
+}, []);
 
 
 
@@ -1301,7 +1335,7 @@ const ExpenseSplitterDashboard = () => {
 
             {/* Groups Grid - using your existing structure */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-              {groups.map(group  => (
+              {groups.map(group => (
                 <GroupCard
                   key={group.id}
                   group={group}
@@ -1340,28 +1374,35 @@ const ExpenseSplitterDashboard = () => {
     };
 
 
-    useEffect(() => {
-      const fetchGroups = async () => {
-        const querySnapshot = await getDocs(collection(db, 'groups'));
-        const groupData = querySnapshot.docs.map(doc => {
-          const data = doc.data();
-          console.log('Raw group data:', data); // 👈 This will show you everything
-          return {
-            id: doc.id,
-            name: data.name,
-            members: Array.isArray(data.members) ? data.members.length : 0,
-            totalSpent: data.totalSpent || 0,
-            yourBalance: data.yourBalance || 0,
-            color: data.color || 'from-gray-500 to-gray-700',
-            icon: emojiMap[data.icon] || emojiMap.Default,
-            recentActivity: data.recentActivity || 'No recent activity',
-          };
-        });
-        setGroups(groupData);
-      };
+ useEffect(() => {
+  const fetchGroups = async () => {
+    try {
+      const querySnapshot = await getDocs(collection(db, 'groups'));
+      const groupData = querySnapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          name: data.name,
+          // Correct the type here: keep members as an array.
+          members: Array.isArray(data.members) ? data.members : [], 
+          totalSpent: data.totalSpent || 0,
+          yourBalance: data.yourBalance || 0,
+          color: data.color || 'from-gray-500 to-gray-700',
+          icon: emojiMap[data.icon] || emojiMap.Default,
+          recentActivity: data.recentActivity || 'No recent activity',
+          createdBy: data.createdBy || { uid: '', email: '', name: 'Anonymous' } 
+          
+        };
+      });
+      setGroups(groupData);
+    } catch (err) {
+      console.error('Error fetching groups:', err);
+      // Handle the error gracefully
+    }
+  };
 
-      fetchGroups();
-    }, []);
+  fetchGroups();
+}, []);
 
 
     // for displaying recent activity
@@ -1377,54 +1418,54 @@ const ExpenseSplitterDashboard = () => {
       timestamp: number;
     };
     const fetchUserGroups = async (uid: string, email: string): Promise<Activity[]> => {
-  const createdQuery = query(
-    collection(db, 'groups'),
-    where('createdBy.uid', '==', uid)
-  );
+      const createdQuery = query(
+        collection(db, 'groups'),
+        where('createdBy.uid', '==', uid)
+      );
 
-  const memberQuery = query(
-    collection(db, 'groups'),
-    where('memberEmails', 'array-contains', email)
-  );
+      const memberQuery = query(
+        collection(db, 'groups'),
+        where('memberEmails', 'array-contains', email)
+      );
 
-  const [createdSnap, memberSnap] = await Promise.all([
-    getDocs(createdQuery),
-    getDocs(memberQuery)
-  ]);
+      const [createdSnap, memberSnap] = await Promise.all([
+        getDocs(createdQuery),
+        getDocs(memberQuery)
+      ]);
 
-  const allDocs = [...createdSnap.docs, ...memberSnap.docs];
-  const activityMap = new Map<string, Activity>();
+      const allDocs = [...createdSnap.docs, ...memberSnap.docs];
+      const activityMap = new Map<string, Activity>();
 
-  allDocs.forEach(doc => {
-    const data = doc.data();
-    // const timeAgo = formatTimeAgo(data.createdAt?.toDate?.());
-    const isCreator = data.createdBy?.uid === uid;
-    const timestamp = data.createdAt?.toDate?.()?.getTime?.() || Date.now();
+      allDocs.forEach(doc => {
+        const data = doc.data();
+        // const timeAgo = formatTimeAgo(data.createdAt?.toDate?.());
+        const isCreator = data.createdBy?.uid === uid;
+        const timestamp = data.createdAt?.toDate?.()?.getTime?.() || Date.now();
 
-    // const activity: Activity = {
-    //   user: data.createdBy?.name || 'Someone',
-    //   action: isCreator ? 'created the group' : 'added you to the group',
-    //   group: data.name || 'Unnamed Group',
-    //   time: timeAgo,
-    //   avatar: getAvatar(data.createdBy?.name || ''),
-    //   timestamp: timestamp
-    // };
+        // const activity: Activity = {
+        //   user: data.createdBy?.name || 'Someone',
+        //   action: isCreator ? 'created the group' : 'added you to the group',
+        //   group: data.name || 'Unnamed Group',
+        //   time: timeAgo,
+        //   avatar: getAvatar(data.createdBy?.name || ''),
+        //   timestamp: timestamp
+        // };
 
- 
 
-activityMap.set(doc.id, {
-  user: data.createdBy?.name || 'Someone',
-  action: isCreator ? 'created the group' : 'added you to the group',
-  group: data.name || 'Unnamed Group',
-  time: formatTimeAgo(data.createdAt?.toDate?.()),
-  avatar: getAvatar(data.createdBy?.name || ''),
-  timestamp // ✅ Add this
-});
 
-  });
+        activityMap.set(doc.id, {
+          user: data.createdBy?.name || 'Someone',
+          action: isCreator ? 'created the group' : 'added you to the group',
+          group: data.name || 'Unnamed Group',
+          time: formatTimeAgo(data.createdAt?.toDate?.()),
+          avatar: getAvatar(data.createdBy?.name || ''),
+          timestamp // ✅ Add this
+        });
 
-  return Array.from(activityMap.values());
-};
+      });
+
+      return Array.from(activityMap.values());
+    };
 
 
     const fetchUserExpenses = async (uid: string): Promise<Activity[]> => {
@@ -1463,72 +1504,78 @@ activityMap.set(doc.id, {
 
       return Array.from(activityMap.values());
     };
-
-   
-
-  useEffect(() => {
-  const loadActivities = async () => {
-    if (!user?.uid || !user?.email) return;
-
-    const [expenses, groupActivities] = await Promise.all([
-      fetchUserExpenses(user.uid),
-      fetchUserGroups(user.uid, user.email)
-    ]);
-
-    const all = [...expenses, ...groupActivities].sort((a, b) => b.timestamp - a.timestamp);
-    setActivities(all);
-  };
-
-  loadActivities();
-}, [user]);
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const [importedGroups, setImportedGroups] = useState<ImportedGroup[]>([]);
 
 
-// const userEmail = user?.email ?? ''; // safe fallback
- const [stats, setStats] = useState<DashboardStats>({
-    groupCount: 0,
-    totalSpent: 0,
-    amountOwed: 0,
-    amountOwedToYou: 0
-  });
-
- const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-    if (!user?.email) {
-      setError('User email not available');
-      setLoading(false);
-      return;
-    }
+      const loadActivities = async () => {
+        if (!user?.uid || !user?.email) return;
 
-    setLoading(true);
-    setError(null);
+        const [expenses, groupActivities] = await Promise.all([
+          fetchUserExpenses(user.uid),
+          fetchUserGroups(user.uid, user.email)
+        ]);
 
-    // Set up real-time listener
-    const unsubscribe = subscribeToUserGroups(
-      user.email,
-      (fetchedGroups: Group[]) => {
-        try {
-          setGroups(fetchedGroups);
-          const calculatedStats = calculateDashboardStats(fetchedGroups, user.email!);
-          setStats(calculatedStats);
-          setLoading(false);
-        } catch (err) {
-          console.error('Error processing groups data:', err);
-          setError('Error processing groups data');
+        const all = [...expenses, ...groupActivities].sort((a, b) => b.timestamp - a.timestamp);
+        setActivities(all);
+      };
+
+      loadActivities();
+    }, [user]);
+
+
+    // const userEmail = user?.email ?? ''; // safe fallback
+    const [stats, setStats] = useState<DashboardStats>({
+      groupCount: 0,
+      totalSpent: 0,
+      amountOwed: 0,
+      amountOwedToYou: 0
+    });
+
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const [loading, setLoading] = useState(true);
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const [error, setError] = useState<string | null>(null);
+
+    useEffect(() => {
+      if (!user?.email) {
+        setError('User email not available');
+        setLoading(false);
+        return;
+      }
+
+      setLoading(true);
+      setError(null);
+
+       
+
+      // Set up real-time listener
+      const unsubscribe = subscribeToUserGroups(
+        user.email,
+        (fetchedGroups: ImportedGroup[]) => {
+          try {
+            setImportedGroups(fetchedGroups);
+            const calculatedStats = calculateDashboardStats(fetchedGroups, user.email!);
+            setStats(calculatedStats);
+            setLoading(false);
+          } catch (err) {
+            console.error('Error processing groups data:', err);
+            setError('Error processing groups data');
+            setLoading(false);
+          }
+        },
+        (err: Error) => {
+          console.error('Error fetching groups:', err);
+          setError('Failed to fetch groups data');
           setLoading(false);
         }
-      },
-      (err: Error) => {
-        console.error('Error fetching groups:', err);
-        setError('Failed to fetch groups data');
-        setLoading(false);
-      }
-    );
+      );
 
-    // Cleanup subscription on unmount
-    return () => unsubscribe();
-  }, [user?.email]);
+      // Cleanup subscription on unmount
+      return () => unsubscribe();
+    }, [user?.email]);
 
 
 
@@ -1797,6 +1844,26 @@ activityMap.set(doc.id, {
   const Profile = () => {
     const [editMode, setEditMode] = useState<boolean>(false);
     const [profile, setProfile] = useState<UserProfile>(userProfile);
+    interface Activity {
+  avatar: string;
+  user: string;
+  action: string;
+  group: string;
+  time: string;
+}
+    // Define a state variable for recentActivity
+ const [recentActivity, setRecentActivity] = useState<Activity[]>([]);
+
+useEffect(() => {
+  const fetchActivity = async () => {
+    const fetchedData: Activity[] = [
+      { avatar: '😀', user: 'Alice', action: 'added a new group', group: 'Vacation Fund', time: '2 hours ago' },
+      { avatar: '😎', user: 'Bob', action: 'paid you $25', group: 'Housemates', time: '1 day ago' },
+    ];
+    setRecentActivity(fetchedData);
+  };
+  fetchActivity();
+}, []);
 
     const handleSave = () => {
       // Simulate saving profile changes
@@ -1937,7 +2004,7 @@ activityMap.set(doc.id, {
                 </button>
                 <div>
                   <h1 className="text-3xl font-bold text-gray-800">{selectedGroup.name}</h1>
-                  <p className="text-gray-600">{selectedGroup.members} members</p>
+                  <p className="text-gray-600">{selectedGroup.members.length} members</p>
                 </div>
               </div>
               <div className="flex space-x-3">
@@ -2036,30 +2103,33 @@ activityMap.set(doc.id, {
     });
 
 
-    type Member = {
-      split(arg0: string): unknown;
-      uid: string;
-      email: string;
-      name?: string;
-      avatar?: string;
-      status: 'active' | 'pending';
-      userExists: boolean;
-    };
+    // type Member = {
+    //   split(arg0: string): unknown;
+    //   uid?: string;
+    //   id: number;
+    //   email: string | null;
+    //   name?: string;
+    //   avatar?: string;
+    //   status: 'active' | 'pending';
+    //   userExists: boolean;
+    // };
 
-    type Group = {
-      id: string;
-      name: string;
-      members: Member[];
-      createdBy: {
-        uid: string;
-        email: string;
-        name: string;
-      };
-      expenses?: Expense[]
-    };
+    // type Group = {
+    //   id: string;
+    //   name: string;
+    //   members: Member[];
+    //   membersList?: number;
+    //   createdBy: {
+    //     uid: string;
+    //     email: string;
+    //     name: string;
+    //   };
+    //   expenses?: Expense[]
+    // };
 
     const [user] = useAuthState(auth);
     const [groups, setGroups] = useState<Group[]>([]);
+ 
 
     useEffect(() => {
       const fetchUserGroups = async () => {
@@ -2303,10 +2373,11 @@ activityMap.set(doc.id, {
                         <label key={member.uid} className="flex items-center space-x-3 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors">
                           <input
                             type="checkbox"
-                            checked={selectedMembers.includes(member.uid)}
-                            onChange={() => handleMemberToggle(member.uid)}
+                            checked={selectedMembers.includes((member.uid ?? member.id ?? '').toString())}
+                            onChange={() => handleMemberToggle((member.uid ?? member.id ?? '').toString())}
                             className="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
                           />
+
                           <div className="flex items-center space-x-2">
                             <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
                               {/* <span className="text-white font-medium text-sm">{member.split(' ').map(n => n[0]).join('')}</span> */}
