@@ -110,3 +110,4 @@ export default function Navbar () {
 //day 1 of being a clown 
 //day 2 of peak fooling
 // day 3 thia ine son pack advanced fooling.
+// day 5: advanced dooling
